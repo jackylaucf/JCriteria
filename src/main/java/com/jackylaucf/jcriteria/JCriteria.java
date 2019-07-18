@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
@@ -35,11 +36,11 @@ public class JCriteria {
         this.stringBuilder = new StringBuilder();
     }
 
-    public Query getQuery(EntityManager entityManager) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public <T> TypedQuery<T> getTypedQuery(EntityManager entityManager, Class<T> entityClass) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         stringBuilder.append("from").append(" ").append(getTargetEntity()).append(" ").append(ENTITY_ALIAS).append(" ");
         stringBuilder.append("where").append(" ");
         inspectCriteria();
-        Query query = entityManager.createQuery(stringBuilder.toString());
+        TypedQuery<T> query = entityManager.createQuery(stringBuilder.toString(), entityClass);
         setParameter(query);
         setPageable(query);
         return query;
@@ -87,7 +88,11 @@ public class JCriteria {
     }
 
     private void setPageable(Query query){
+        if(pageable!=null){
+            query.setFirstResult(pageable.getPageNumber()*pageable.getPageSize());
+            query.setMaxResults(pageable.getPageSize());
 
+        }
     }
 
 }

@@ -3,15 +3,16 @@ package com.jackylaucf.jcriteria;
 import com.jackylaucf.jcriteria.annotation.Criteria;
 import com.jackylaucf.jcriteria.annotation.TargetEntity;
 import com.jackylaucf.jcriteria.criteria.Logic;
+import com.jackylaucf.jcriteria.criteria.PagingCriteria;
 import com.jackylaucf.jcriteria.criteria.QueryCriteria;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.springframework.data.domain.Pageable;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class JCriteria {
@@ -19,28 +20,28 @@ public class JCriteria {
     private static final String ENTITY_ALIAS = "s";
     private static final String ENTITY_ALIAS_PROPERTY = "s.";
 
+    private EntityManager entityManager;
     private QueryCriteria criteria;
-    private Pageable pageable;
+    private PagingCriteria pagingCriteria;
     private StringBuilder stringBuilder;
     private Map<String, Object> criteriaContainer;
 
-
-    public JCriteria(QueryCriteria criteria){
-        this.criteria = criteria;
-        this.stringBuilder = new StringBuilder();
+    public JCriteria(EntityManager entityManager){
+        this.entityManager = entityManager;
     }
 
-    public JCriteria(QueryCriteria criteria, Pageable pageable){
+    public JCriteria criteria(QueryCriteria criteria){
         this.criteria = criteria;
-        this.pageable = pageable;
-        this.stringBuilder = new StringBuilder();
+        return this;
     }
 
+    public JCriteria 
     public <T> TypedQuery<T> getTypedQuery(EntityManager entityManager, Class<T> entityClass) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         stringBuilder.append("from").append(" ").append(getTargetEntity()).append(" ").append(ENTITY_ALIAS).append(" ");
         stringBuilder.append("where").append(" ");
         inspectCriteria();
-        TypedQuery<T> query = entityManager.createQuery(stringBuilder.toString(), entityClass);
+        sortCriteria();
+        TypedQuery<?> query = entityManager.createQuery(stringBuilder.toString(), criteria.getClass().getAnnotation(TargetEntity.class).entityClass());
         setParameter(query);
         setPageable(query);
         return query;
@@ -87,11 +88,14 @@ public class JCriteria {
 
     }
 
-    private void setPageable(Query query){
-        if(pageable!=null){
-            query.setFirstResult(pageable.getPageNumber()*pageable.getPageSize());
-            query.setMaxResults(pageable.getPageSize());
+    private void sortCriteria(){
 
+    }
+
+    private void setPageable(Query query){
+        if(pagingCriteria!=null){
+            query.setFirstResult(pagingCriteria.getPageNumber()*pagingCriteria.getPageSize());
+            query.setMaxResults(pagingCriteria.getPageSize());
         }
     }
 

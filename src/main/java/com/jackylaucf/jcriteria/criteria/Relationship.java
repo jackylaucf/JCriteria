@@ -1,8 +1,8 @@
 package com.jackylaucf.jcriteria.criteria;
 
 public enum Relationship {
-    AND("and "),
-    OR("or ");
+    AND(" and "),
+    OR(" or ");
 
     String jpql;
 

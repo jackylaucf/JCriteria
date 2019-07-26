@@ -12,7 +12,6 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
 import java.util.Map;
 
 public class JCriteria {
@@ -35,16 +34,22 @@ public class JCriteria {
         return this;
     }
 
-    public JCriteria 
+    public JCriteria paging(PagingCriteria pagingCriteria){
+        this.pagingCriteria = pagingCriteria;
+        return this;
+    }
+
+    //
     public <T> TypedQuery<T> getTypedQuery(EntityManager entityManager, Class<T> entityClass) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         stringBuilder.append("from").append(" ").append(getTargetEntity()).append(" ").append(ENTITY_ALIAS).append(" ");
         stringBuilder.append("where").append(" ");
         inspectCriteria();
         sortCriteria();
-        TypedQuery<?> query = entityManager.createQuery(stringBuilder.toString(), criteria.getClass().getAnnotation(TargetEntity.class).entityClass());
-        setParameter(query);
-        setPageable(query);
-        return query;
+        //TypedQuery<T> query = entityManager.createQuery
+        //setParameter(query);
+        //setPageable(query);
+        //return query;
+        return null;
     }
 
     private String getTargetEntity(){

@@ -17,4 +17,8 @@ public enum Direction {
             return Direction.ASC;
         }
     }
+
+    public int intVal() {
+        return this.i;
+    }
 }

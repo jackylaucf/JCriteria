@@ -1,42 +1,40 @@
 package com.jackylaucf.jcriteria;
 
-import com.jackylaucf.jcriteria.annotation.Criteria;
-import com.jackylaucf.jcriteria.annotation.TargetEntity;
-import com.jackylaucf.jcriteria.criteria.Logic;
 import com.jackylaucf.jcriteria.criteria.PagingCriteria;
 import com.jackylaucf.jcriteria.criteria.QueryCriteria;
 import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.beanutils.PropertyUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import javax.persistence.TypedQuery;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 public class JCriteria {
 
     private EntityManager entityManager;
     private QueryCriteria criteria;
-    private StringBuilder stringBuilder;
     private String selectJpql;
     private String countJpql;
     private Query query;
-    private Map<String, Object> criteriaValueMap;
 
     public JCriteria(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
-    public JCriteria criteria(QueryCriteria criteria) {
+    public JCriteria criteria(QueryCriteria criteria) throws NoSuchFieldException, IllegalAccessException {
         this.criteria = criteria;
-        this.selectJpql = getSelectJPQL();
-        this.countJpql = getCountJPQL();
+        this.selectJpql = new JPQLWriter(criteria).writeSelectJpql();
+        this.countJpql = JPQLWriter.writeSelectCountStatement() + this.selectJpql;
+        this.query = entityManager.createQuery(selectJpql);
+        return this;
+    }
+
+    public JCriteria criteria(QueryCriteria criteria, List<String> conditionNameList) throws NoSuchFieldException, IllegalAccessException {
+        this.criteria = criteria;
+        this.selectJpql = new JPQLWriter(criteria, conditionNameList).writeSelectJpql();
+        this.countJpql = JPQLWriter.writeSelectCountStatement() + this.selectJpql;
         this.query = entityManager.createQuery(selectJpql);
         return this;
     }
@@ -70,25 +68,11 @@ public class JCriteria {
         return pageResult;
     }
 
-    private String getSelectJPQL() {
-        stringBuilder = new StringBuilder();
-        criteriaValueMap = new HashMap<>();
-        writeJPQLEntity();
-        return stringBuilder.toString();
+    public String getSelectJpql(){
+        return this.selectJpql;
     }
 
-    private String getCountJPQL() {
-        return JPQLKeyword.SELECT + JPQLKeyword.COUNT + selectJpql;
-    }
-
-    private void writeJPQLEntity() {
-        stringBuilder.append(JPQLKeyword.FROM);
-        TargetEntity targetEntity = criteria.getClass().getAnnotation(TargetEntity.class);
-        if (targetEntity == null) {
-            throw new IllegalArgumentException();
-        }
-        else {
-            stringBuilder.append(targetEntity.value().getSimpleName()).append(JPQLKeyword.SPACE).append(JPQLKeyword.ALIAS);
-        }
+    public String getCountJpql(){
+        return this.countJpql;
     }
 }

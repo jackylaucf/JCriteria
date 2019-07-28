@@ -18,6 +18,8 @@ class JPQLWriter {
     private static final String WHERE = " WHERE ";
     private static final String COUNT = "COUNT(" + ALIAS + ")";
     private static final String WILDCARD = "%";
+    private static final String OPEN_BRACKET="(";
+    private static final String CLOSE_BRACKET=")";
 
     private StringBuilder stringBuilder;
     private QueryCriteria criteria;
@@ -72,6 +74,19 @@ class JPQLWriter {
     }
 
     private void resolveCriteria(Field field, Object value, int index){
+        Criteria criteria = field.getDeclaredAnnotation(Criteria.class);
+        if(index!=0){
+            stringBuilder.append(criteria.externalConjunction().jpql());
+        }
+        if(criteria.mapTo().length>1){
+            stringBuilder.append(OPEN_BRACKET);
+            for(String s : criteria.mapTo()){
+                stringBuilder.append(ALIAS).append(DOT).append(s).append(criteria.logic().jpql());
+            }
+            stringBuilder.append(CLOSE_BRACKET);
+        }else if(criteria.mapTo().length==1){
+
+        }
 
     }
 

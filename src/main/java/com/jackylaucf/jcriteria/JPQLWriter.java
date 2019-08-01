@@ -80,8 +80,8 @@ class JPQLWriter {
         }
         if(criteria.mapTo().length>1){
             stringBuilder.append(OPEN_BRACKET);
-            for(String s : criteria.mapTo()){
-                stringBuilder.append(ALIAS).append(DOT).append(s).append(criteria.logic().jpql());
+            for(int i=0; i<criteria.mapTo().length; i++){
+                stringBuilder.append(ALIAS).append(DOT).append(criteria.mapTo()[i]).append(criteria.logic().jpql());
             }
             stringBuilder.append(CLOSE_BRACKET);
         }else if(criteria.mapTo().length==1){

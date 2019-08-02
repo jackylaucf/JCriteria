@@ -9,6 +9,7 @@ import javax.persistence.Query;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public class JCriteria {
@@ -17,6 +18,7 @@ public class JCriteria {
     private QueryCriteria criteria;
     private String selectJpql;
     private String countJpql;
+    private Map<String, Object> criteriaValueMap;
     private Query query;
 
     public JCriteria(EntityManager entityManager) {
@@ -25,16 +27,18 @@ public class JCriteria {
 
     public JCriteria criteria(QueryCriteria criteria) throws NoSuchFieldException, IllegalAccessException {
         this.criteria = criteria;
-        this.selectJpql = new JPQLWriter(criteria).writeSelectJpql();
-        this.countJpql = JPQLWriter.writeSelectCountStatement() + this.selectJpql;
+        PersistenceIO.JPQLWriter writer = new PersistenceIO(criteria).getWriter();
+        this.selectJpql = writer.getJPQL();
+        this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;
         this.query = entityManager.createQuery(selectJpql);
+
         return this;
     }
 
     public JCriteria criteria(QueryCriteria criteria, List<String> conditionNameList) throws NoSuchFieldException, IllegalAccessException {
         this.criteria = criteria;
-        this.selectJpql = new JPQLWriter(criteria, conditionNameList).writeSelectJpql();
-        this.countJpql = JPQLWriter.writeSelectCountStatement() + this.selectJpql;
+        this.selectJpql = new PersistenceIO(criteria, conditionNameList).getWriter().getJPQL();
+        this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;
         this.query = entityManager.createQuery(selectJpql);
         return this;
     }

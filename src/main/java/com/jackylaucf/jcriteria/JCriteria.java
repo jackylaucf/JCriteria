@@ -31,15 +31,21 @@ public class JCriteria {
         this.selectJpql = writer.getJPQL();
         this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;
         this.query = entityManager.createQuery(selectJpql);
-
+        for(Map.Entry<String, Object> keyValuePair : writer.getWriterValueMap().entrySet()){
+            query.setParameter(keyValuePair.getKey(), keyValuePair.getValue());
+        }
         return this;
     }
 
     public JCriteria criteria(QueryCriteria criteria, List<String> conditionNameList) throws NoSuchFieldException, IllegalAccessException {
         this.criteria = criteria;
-        this.selectJpql = new PersistenceIO(criteria, conditionNameList).getWriter().getJPQL();
+        PersistenceIO.JPQLWriter writer = new PersistenceIO(criteria, conditionNameList).getWriter();
+        this.selectJpql = writer.getJPQL();
         this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;
         this.query = entityManager.createQuery(selectJpql);
+        for(Map.Entry<String, Object> keyValuePair : writer.getWriterValueMap().entrySet()){
+            query.setParameter(keyValuePair.getKey(), keyValuePair.getValue());
+        }
         return this;
     }
 

@@ -5,9 +5,18 @@ import java.util.List;
 public class PageResult<T> {
 
     private List<T> result;
-    private Integer count;
+    private Long count;
     private Integer first;
     private Integer size;
+
+    public PageResult() {}
+
+    public PageResult(List<T> result, Long count, Integer first, Integer size) {
+        this.result = result;
+        this.count = count;
+        this.first = first;
+        this.size = size;
+    }
 
     public List<T> getResult() {
         return result;
@@ -17,11 +26,11 @@ public class PageResult<T> {
         this.result = result;
     }
 
-    public Integer getCount() {
+    public Long getCount() {
         return count;
     }
 
-    public void setCount(Integer count) {
+    public void setCount(long count) {
         this.count = count;
     }
 

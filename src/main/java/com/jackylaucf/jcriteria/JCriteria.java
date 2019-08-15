@@ -15,43 +15,49 @@ import java.util.function.Supplier;
 public class JCriteria {
 
     private EntityManager entityManager;
-    private QueryCriteria criteria;
     private String selectJpql;
     private String countJpql;
-    private Map<String, Object> criteriaValueMap;
     private Query query;
+    private Map<String, Object> criteriaValueMap;
 
     public JCriteria(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
     public JCriteria criteria(QueryCriteria criteria) throws NoSuchFieldException, IllegalAccessException {
-        this.criteria = criteria;
         PersistenceIO.JPQLWriter writer = new PersistenceIO(criteria).getWriter();
         this.selectJpql = writer.getJPQL();
         this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;
+        this.criteriaValueMap = writer.getWriterValueMap();
         this.query = entityManager.createQuery(selectJpql);
-        for(Map.Entry<String, Object> keyValuePair : writer.getWriterValueMap().entrySet()){
+        for (Map.Entry<String, Object> keyValuePair : writer.getWriterValueMap().entrySet()) {
             query.setParameter(keyValuePair.getKey(), keyValuePair.getValue());
         }
         return this;
     }
 
     public JCriteria criteria(QueryCriteria criteria, List<String> conditionNameList) throws NoSuchFieldException, IllegalAccessException {
-        this.criteria = criteria;
         PersistenceIO.JPQLWriter writer = new PersistenceIO(criteria, conditionNameList).getWriter();
         this.selectJpql = writer.getJPQL();
         this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;
+        this.criteriaValueMap = writer.getWriterValueMap();
         this.query = entityManager.createQuery(selectJpql);
-        for(Map.Entry<String, Object> keyValuePair : writer.getWriterValueMap().entrySet()){
+        for (Map.Entry<String, Object> keyValuePair : criteriaValueMap.entrySet()) {
             query.setParameter(keyValuePair.getKey(), keyValuePair.getValue());
         }
         return this;
     }
 
     public JCriteria paging(PagingCriteria pagingCriteria) {
-        query.setFirstResult(pagingCriteria.getPageNumber() * pagingCriteria.getPageSize());
-        query.setMaxResults(pagingCriteria.getPageSize());
+        if (pagingCriteria.getSortProperty() != null) {
+            this.selectJpql = PersistenceIO.orderBy(selectJpql, pagingCriteria.getSortProperty(), pagingCriteria.getDirection());
+            this.query = entityManager.createQuery(selectJpql);
+            for (Map.Entry<String, Object> keyValuePair : criteriaValueMap.entrySet()) {
+                query.setParameter(keyValuePair.getKey(), keyValuePair.getValue());
+            }
+        }
+        this.query.setFirstResult(pagingCriteria.getPageNumber() * pagingCriteria.getPageSize());
+        this.query.setMaxResults(pagingCriteria.getPageSize());
         return this;
     }
 
@@ -65,8 +71,12 @@ public class JCriteria {
         return resultList;
     }
 
-    public Integer getCount() {
-        return (Integer) entityManager.createQuery(countJpql).getSingleResult();
+    public long getCount() {
+        Query query = entityManager.createQuery(countJpql);
+        for (Map.Entry<String, Object> keyValuePair : criteriaValueMap.entrySet()) {
+            query.setParameter(keyValuePair.getKey(), keyValuePair.getValue());
+        }
+        return (long) query.getSingleResult();
     }
 
     public <T> PageResult<T> getPageResult(Supplier<T> resultTypeSupplier) throws InvocationTargetException, IllegalAccessException {

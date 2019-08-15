@@ -1,6 +1,5 @@
 package com.jackylaucf.jcriteria.annotation;
 
-import com.jackylaucf.jcriteria.criteria.CriteriaType;
 import com.jackylaucf.jcriteria.criteria.Relationship;
 import com.jackylaucf.jcriteria.criteria.Logic;
 
@@ -13,7 +12,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 public @interface Criteria {
     String[] mapTo();
-    CriteriaType criteriaType();
     Logic logic();
     Relationship internalConjunction() default Relationship.OR;
     Relationship externalConjunction() default Relationship.AND;

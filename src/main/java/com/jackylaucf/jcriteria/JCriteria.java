@@ -24,7 +24,7 @@ public class JCriteria {
         this.entityManager = entityManager;
     }
 
-    public JCriteria criteria(QueryCriteria criteria) throws NoSuchFieldException, IllegalAccessException {
+    public JCriteria criteria(QueryCriteria criteria) throws NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
         PersistenceIO.JPQLWriter writer = new PersistenceIO(criteria).getWriter();
         this.selectJpql = writer.getJPQL();
         this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;
@@ -36,7 +36,7 @@ public class JCriteria {
         return this;
     }
 
-    public JCriteria criteria(QueryCriteria criteria, List<String> conditionNameList) throws NoSuchFieldException, IllegalAccessException {
+    public JCriteria criteria(QueryCriteria criteria, List<String> conditionNameList) throws NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
         PersistenceIO.JPQLWriter writer = new PersistenceIO(criteria, conditionNameList).getWriter();
         this.selectJpql = writer.getJPQL();
         this.countJpql = PersistenceIO.JPQLWriter.SELECT + PersistenceIO.JPQLWriter.COUNT + this.selectJpql;

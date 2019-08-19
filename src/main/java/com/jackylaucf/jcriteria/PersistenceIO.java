@@ -1,7 +1,9 @@
 package com.jackylaucf.jcriteria;
 
 import com.jackylaucf.jcriteria.annotation.Criteria;
+import com.jackylaucf.jcriteria.annotation.IgnoreCase;
 import com.jackylaucf.jcriteria.annotation.TargetEntity;
+import com.jackylaucf.jcriteria.criteria.CriteriaType;
 import com.jackylaucf.jcriteria.criteria.Direction;
 import com.jackylaucf.jcriteria.criteria.Logic;
 import com.jackylaucf.jcriteria.criteria.QueryCriteria;
@@ -25,6 +27,7 @@ class PersistenceIO {
         static final String ASC = " ASC ";
         static final String DESC = " DESC ";
         static final String COUNT = "COUNT(" + ALIAS + ")";
+        static final String LOWER = "LOWER";
         static final String WILDCARD = "%";
         static final String OPEN_BRACKET = "(";
         static final String CLOSE_BRACKET = ")";
@@ -35,10 +38,12 @@ class PersistenceIO {
 
         private StringBuilder stringBuilder;
         private Map<String, Object> criteriaValueMap;
+        private boolean globalIgnoreCase;
 
         private JPQLWriter() {
             stringBuilder = new StringBuilder();
             criteriaValueMap = new HashMap<>();
+            globalIgnoreCase = criteria.getClass().isAnnotationPresent(IgnoreCase.class);
         }
 
         String getJPQL(){
@@ -60,14 +65,22 @@ class PersistenceIO {
             }
         }
 
-        private void writeWhereStatement() throws NoSuchFieldException, IllegalAccessException {
+        private void writeWhereStatement() throws NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
             List<Field> fields = new ArrayList<>();
-            if (conditionNameList == null) {
-                fields = Arrays.asList(criteria.getClass().getDeclaredFields());
+            if (conditionNameList == null){
+                for(Field f : criteria.getClass().getDeclaredFields()){
+                    if(f.isAnnotationPresent(Criteria.class)){
+                        fields.add(f);
+                    }
+                }
             }
             else {
                 for (String fieldName : conditionNameList) {
-                    fields.add(criteria.getClass().getDeclaredField(fieldName));
+                    Field f = criteria.getClass().getDeclaredField(fieldName);
+                    if(!f.isAnnotationPresent(Criteria.class)){
+                        throw new ClassNotFoundException("Missing @Criteria Annotation for Field:" +f.getName());
+                    }
+                    fields.add(f);
                 }
             }
             for (int i = 0, j = 0; i < fields.size(); i++) {
@@ -90,15 +103,25 @@ class PersistenceIO {
             else {
                 stringBuilder.append(criteria.externalConjunction().jpql());
             }
+            boolean isIgnoreCase = criteria.criteriaType().equals(CriteriaType.TEXT) && (globalIgnoreCase || field.isAnnotationPresent(IgnoreCase.class));
             if (criteria.mapTo().length > 1) {
                 stringBuilder.append(OPEN_BRACKET);
                 for (int i = 0; i < criteria.mapTo().length; i++) {
-                    stringBuilder.append(ALIAS).append(DOT).append(criteria.mapTo()[i]).append(criteria.logic().jpql());
+                    if(isIgnoreCase){
+                        stringBuilder.append(LOWER).append(OPEN_BRACKET).append(ALIAS).append(DOT).append(criteria.mapTo()[i]).append(CLOSE_BRACKET);
+                    }else{
+                        stringBuilder.append(ALIAS).append(DOT).append(criteria.mapTo()[i]);
+                    }
+                    stringBuilder.append(criteria.logic().jpql());
                     if (criteria.logic().equals(Logic.LIKE) || criteria.logic().equals(Logic.START_WITH) || criteria.logic().equals(Logic.END_WITH)) {
-                        handleLikeStatement(criteria, field);
+                        handleLikeStatement(criteria, field, isIgnoreCase);
                     }
                     else {
-                        stringBuilder.append(NAMED_PARAMETER).append(field.getName());
+                        if(isIgnoreCase) {
+                            stringBuilder.append(LOWER).append(OPEN_BRACKET).append(NAMED_PARAMETER).append(field.getName()).append(CLOSE_BRACKET);
+                        }else{
+                            stringBuilder.append(NAMED_PARAMETER).append(field.getName());
+                        }
                     }
                     if (i != criteria.mapTo().length - 1) {
                         stringBuilder.append(criteria.internalConjunction().jpql());
@@ -109,15 +132,22 @@ class PersistenceIO {
             else if (criteria.mapTo().length == 1) {
                 stringBuilder.append(ALIAS).append(DOT).append(criteria.mapTo()[0]).append(criteria.logic().jpql());
                 if (criteria.logic().equals(Logic.LIKE) || criteria.logic().equals(Logic.START_WITH) || criteria.logic().equals(Logic.END_WITH)) {
-                    handleLikeStatement(criteria, field);
+                    handleLikeStatement(criteria, field, isIgnoreCase);
                 }
                 else {
-                    stringBuilder.append(NAMED_PARAMETER).append(field.getName());
+                    if(isIgnoreCase){
+                        stringBuilder.append(LOWER).append(OPEN_BRACKET).append(NAMED_PARAMETER).append(field.getName()).append(CLOSE_BRACKET);
+                    }else{
+                        stringBuilder.append(NAMED_PARAMETER).append(field.getName());
+                    }
                 }
             }
         }
 
-        private void handleLikeStatement(Criteria criteria, Field field) {
+        private void handleLikeStatement(Criteria criteria, Field field, boolean isIgnoreCase) {
+            if(isIgnoreCase){
+                stringBuilder.append(LOWER).append(OPEN_BRACKET);
+            }
             stringBuilder.append(CONCAT).append(OPEN_BRACKET);
             if (criteria.logic().equals(Logic.LIKE) || criteria.logic().equals(Logic.END_WITH)) {
                 stringBuilder.append(QUOTE).append(WILDCARD).append(QUOTE).append(COMMA);
@@ -127,6 +157,9 @@ class PersistenceIO {
                 stringBuilder.append(COMMA).append(QUOTE).append(WILDCARD).append(QUOTE);
             }
             stringBuilder.append(CLOSE_BRACKET);
+            if(isIgnoreCase){
+                stringBuilder.append(CLOSE_BRACKET);
+            }
         }
     }
 
@@ -139,7 +172,7 @@ class PersistenceIO {
         this.conditionNameList = conditionNameList;
     }
 
-    JPQLWriter getWriter() throws NoSuchFieldException, IllegalAccessException {
+    JPQLWriter getWriter() throws NoSuchFieldException, IllegalAccessException, ClassNotFoundException {
         JPQLWriter writer = new JPQLWriter();
         writer.writeFromStatement();
         writer.writeWhereStatement();

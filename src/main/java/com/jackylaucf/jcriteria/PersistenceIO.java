@@ -130,7 +130,13 @@ class PersistenceIO {
                 stringBuilder.append(CLOSE_BRACKET);
             }
             else if (criteria.mapTo().length == 1) {
-                stringBuilder.append(ALIAS).append(DOT).append(criteria.mapTo()[0]).append(criteria.logic().jpql());
+                if (isIgnoreCase) {
+					stringBuilder.append(LOWER).append(OPEN_BRACKET).append(ALIAS).append(DOT).append(criteria.mapTo()[0]).append(CLOSE_BRACKET);
+				}
+				else {
+					stringBuilder.append(ALIAS).append(DOT).append(criteria.mapTo()[0]);
+				}
+				stringBuilder.append(criteria.logic().jpql());
                 if (criteria.logic().equals(Logic.LIKE) || criteria.logic().equals(Logic.START_WITH) || criteria.logic().equals(Logic.END_WITH)) {
                     handleLikeStatement(criteria, field, isIgnoreCase);
                 }
